@@ -1,5 +1,14 @@
 const { tasksDb } = require('../models/db.tasks');
 
+const parseTaskId = (value) => {
+    if (!/^\d+$/.test(value)) {
+        return null;
+    }
+
+    const taskId = Number(value);
+    return Number.isSafeInteger(taskId) && taskId > 0 ? taskId : null;
+};
+
 const getAllTasks = async (req, res) => {
     try {
         const tasks = await tasksDb;
@@ -18,7 +27,14 @@ const getAllTasks = async (req, res) => {
 
 const getTaskById = async (req, res) => {
     try {
-        const taskId = parseInt(req.params.taskId, 10);
+        const taskId = parseTaskId(req.params.taskId);
+
+        if (taskId === null) {
+            return res.status(400).json({
+                status: 'Error',
+                message: 'Task ID must be a positive integer',
+            });
+        }
 
         const tasks = await tasksDb;
         const task = tasks.find(t => t.id === taskId);
@@ -72,7 +88,7 @@ const createTask = async (req, res) => {
         const tasks = await tasksDb;
 
         const newTask = {
-            id: tasks.length + 1,
+            id: tasks.reduce((maxId, task) => Math.max(maxId, task.id), 0) + 1,
             title: title.trim(),
             description: description.trim(),
             completed,
@@ -95,7 +111,14 @@ const createTask = async (req, res) => {
 
 const updateTaskById = async (req, res) => {
 
-    const taskId = parseInt(req.params.taskId, 10);
+    const taskId = parseTaskId(req.params.taskId);
+
+    if (taskId === null) {
+        return res.status(400).json({
+            status: 'Error',
+            message: 'Task ID must be a positive integer',
+        });
+    }
 
     const { title, description, completed } = req.body ?? {};
 
@@ -167,7 +190,14 @@ const updateTaskById = async (req, res) => {
 
 const deleteTaskById = async (req, res) => {
     try {
-        const taskId = parseInt(req.params.taskId, 10);
+        const taskId = parseTaskId(req.params.taskId);
+
+        if (taskId === null) {
+            return res.status(400).json({
+                status: 'Error',
+                message: 'Task ID must be a positive integer',
+            });
+        }
 
         const tasks = await tasksDb;
         const taskIndex = tasks.findIndex(t => t.id === taskId);
